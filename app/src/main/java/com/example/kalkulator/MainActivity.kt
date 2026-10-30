@@ -38,11 +38,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kalkulator.ui.theme.KalkulatorTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ButtonDefaults
 
 enum class ButtonRole {
     NUMBER,
     OPERATION,
     ACTION,
+    EQUALS,
     OTHER
 }
 data class ButtonData(val title: String, val role: ButtonRole, val onClick: () -> Unit = {})
@@ -67,7 +70,7 @@ val keypadButtons = listOf(
     ButtonData("0", ButtonRole.NUMBER) {},
     ButtonData(".", ButtonRole.NUMBER) {},
     ButtonData("+", ButtonRole.OPERATION) {},
-    ButtonData("=", ButtonRole.OPERATION) {}
+    ButtonData("=", ButtonRole.EQUALS) {}
 )
 
 val horizontalButtons = listOf(
@@ -222,15 +225,20 @@ fun Keypad(
         contentPadding = if (isLandscape) PaddingValues(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 0.dp) else PaddingValues(8.dp)
     ) {
         items(buttons) { button ->
-            val buttonsColor = when (button.role) {
-                ButtonRole.NUMBER -> Color.White
-                ButtonRole.OPERATION -> Color.Yellow
-                ButtonRole.ACTION -> Color.Red
-                ButtonRole.OTHER -> Color.Gray
+            val (containerColor, contentColor) = when (button.role) {
+                ButtonRole.EQUALS -> MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+                ButtonRole.OPERATION -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
+                ButtonRole.ACTION -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+                ButtonRole.NUMBER -> MaterialTheme.colorScheme.surfaceContainerHigh to MaterialTheme.colorScheme.onSurface
+                ButtonRole.OTHER -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
             }
 
             Button(
                 onClick = {onButtonClick(button)},
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = containerColor,
+                    contentColor = contentColor
+                ),
                 contentPadding = if (isLandscape) PaddingValues(0.dp) else PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 modifier = Modifier
                     .aspectRatio(buttonAspectRatio)
