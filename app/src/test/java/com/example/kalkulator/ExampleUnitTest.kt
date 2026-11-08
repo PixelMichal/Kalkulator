@@ -30,7 +30,7 @@ class ExampleUnitTest {
         assertEquals("2*", calculateExpression(inputMul))
 
         val inputAdd = "2+"
-        assertNotNull(calculateExpression(inputAdd))
+        assertEquals("2+", calculateExpression(inputAdd))
     }
 
     @Test

@@ -222,6 +222,8 @@ fun CalcDisplay(
                         fontFamily = AppFontFamily,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.End,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -262,12 +264,20 @@ fun CalcDisplay(
                 contentAlignment = Alignment.CenterEnd
             ) {
                 if (resultText.isNotEmpty()) {
+                    val resultFontSize = when {
+                        resultText.length > 18 -> 20.sp
+                        resultText.length > 14 -> 24.sp
+                        resultText.length > 10 -> 28.sp
+                        else -> 34.sp
+                    }
                     Text(
                         text = "= $resultText",
-                        fontSize = 34.sp,
+                        fontSize = resultFontSize,
                         fontFamily = AppFontFamily,
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.End,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -331,6 +341,13 @@ fun calculateExpression(rawExpression: String): String {
         .replace("√(", "sqrt(")
         .replace(",", ".")
         .replace("π", "pi")
+
+    val trimmed = normalized.trim()
+    if (trimmed.endsWith("+") || trimmed.endsWith("-") || trimmed.endsWith("*") ||
+        trimmed.endsWith("/") || trimmed.endsWith("^") || trimmed.endsWith("(")
+    ) {
+        return rawExpression
+    }
 
     val expression = Expression(normalized)
     val result = expression.calculate()
