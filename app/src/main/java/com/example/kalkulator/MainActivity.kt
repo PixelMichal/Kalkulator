@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -29,17 +30,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.kalkulator.ui.theme.KalkulatorTheme
+import com.example.kalkulator.ui.theme.AppFontFamily
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.saveable.rememberSaveable
+import android.util.Log
+import org.mariuszgromada.math.mxparser.License
+import org.mariuszgromada.math.mxparser.Expression
 
 enum class ButtonRole {
     NUMBER,
@@ -86,6 +91,7 @@ val horizontalButtons = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        License.iConfirmNonCommercialUse("Użycie w celach edukacyjnych")
         enableEdgeToEdge()
         setContent {
             KalkulatorTheme {
@@ -95,20 +101,40 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        Log.d("KalkulatorState", "Zapisany stan Bundle:")
+        for (key in outState.keySet()) {
+            Log.d("KalkulatorState", "Klucz: $key -> Wartość: ${outState.get(key)}")
+        }
+    }
 }
+
 
 @Composable
 fun CalculatorScreen(modifier: Modifier = Modifier) {
-    var inputText by remember {mutableStateOf("")}
+    var inputText by rememberSaveable { mutableStateOf("") }
+    var resultText by rememberSaveable { mutableStateOf("") }
 
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    val handleButtonClick: (ButtonData) -> Unit = {button ->
+    val handleButtonClick: (ButtonData) -> Unit = { button ->
         when (button.title) {
-            "C" -> inputText = ""
-            "⌫" -> if (inputText.isNotEmpty()) inputText = inputText.dropLast(1)
-            "=" -> {}
-            "sin", "cos", "tan", "ln", "√" -> inputText += "${button.title}("
+            "C" -> {
+                inputText = ""
+                resultText = ""
+            }
+            "⌫" -> {
+                if (inputText.isNotEmpty()) inputText = inputText.dropLast(1)
+            }
+            "=" -> {
+                val res = calculateExpression(inputText)
+                if (res.isNotEmpty() && res != inputText) {
+                    resultText = res
+                }
+            }
+            "sin", "cos", "tan", "ln" -> inputText += "${button.title}("
+            "√" -> inputText += "√("
             "x^y" -> inputText += "^"
             else -> inputText += button.title
         }
@@ -116,10 +142,11 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
 
     Box(modifier = modifier.fillMaxSize()){
         Column(modifier = Modifier.fillMaxSize()) {
-            CalcInput(
-                value = inputText,
+            CalcDisplay(
+                inputText = inputText,
+                resultText = resultText,
                 onValueChange = { inputText = it },
-                modifier = if (isLandscape) Modifier else Modifier.weight(1f)
+                modifier = if (isLandscape) Modifier.fillMaxWidth() else Modifier.weight(1f)
             )
 
             if (isLandscape){
@@ -127,6 +154,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .padding(bottom = 8.dp)
                 ){
                     Keypad(
                         buttons = horizontalButtons,
@@ -154,57 +182,97 @@ fun CalculatorScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CalcInput(
-    value: String,
+fun CalcDisplay(
+    inputText: String,
+    resultText: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     if (isLandscape) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            readOnly = true,
-            singleLine = true,
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.End,
-                fontSize = 20.sp
-            ),
+        Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    top = 2.dp,
-                    bottom = 2.dp
-                )
-        )
+                .padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 0.dp)
+        ) {
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = onValueChange,
+                readOnly = true,
+                singleLine = true,
+                textStyle = LocalTextStyle.current.copy(
+                    textAlign = TextAlign.End,
+                    fontSize = 18.sp,
+                    fontFamily = AppFontFamily,
+                    fontFeatureSettings = "tnum"
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(22.dp)
+                    .padding(end = 4.dp)
+            ) {
+                if (resultText.isNotEmpty()) {
+                    Text(
+                        text = "= $resultText",
+                        fontSize = 17.sp,
+                        fontFamily = AppFontFamily,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
     } else {
         val scrollState = rememberScrollState()
 
-        LaunchedEffect(value) {
+        LaunchedEffect(inputText) {
             scrollState.animateScrollTo(scrollState.maxValue)
         }
 
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            readOnly = true,
-            textStyle = LocalTextStyle.current.copy(
-                textAlign = TextAlign.End,
-                fontSize = 28.sp
-            ),
+        Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(
-                    start = 12.dp,
-                    end = 12.dp,
-                    top = 16.dp,
-                    bottom = 16.dp
-                )
-                .verticalScroll(scrollState)
-        )
+                .padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 4.dp)
+        ) {
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = onValueChange,
+                readOnly = true,
+                textStyle = LocalTextStyle.current.copy(
+                    textAlign = TextAlign.End,
+                    fontSize = 24.sp,
+                    fontFamily = AppFontFamily,
+                    fontFeatureSettings = "tnum"
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.7f)
+                    .verticalScroll(scrollState)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.3f)
+                    .padding(end = 8.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                if (resultText.isNotEmpty()) {
+                    Text(
+                        text = "= $resultText",
+                        fontSize = 34.sp,
+                        fontFamily = AppFontFamily,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -215,14 +283,14 @@ fun Keypad(
     columns: Int = 4,
     modifier: Modifier = Modifier) {
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val buttonAspectRatio = if (isLandscape) 1.8f else 1f
+    val buttonAspectRatio = if (isLandscape) 1.95f else 1f
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(if (isLandscape) 4.dp else 8.dp),
         verticalArrangement = Arrangement.spacedBy(if (isLandscape) 4.dp else 8.dp),
-        contentPadding = if (isLandscape) PaddingValues(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 0.dp) else PaddingValues(8.dp)
+        contentPadding = if (isLandscape) PaddingValues(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 4.dp) else PaddingValues(8.dp)
     ) {
         items(buttons) { button ->
             val (containerColor, contentColor) = when (button.role) {
@@ -246,9 +314,34 @@ fun Keypad(
             ) {
                 Text(
                     text = button.title,
-                    fontSize = if (isLandscape) 17.sp else 20.sp
+                    fontSize = if (isLandscape) 17.sp else 20.sp,
+                    fontFamily = AppFontFamily
                 )
             }
         }
+    }
+}
+
+fun calculateExpression(rawExpression: String): String {
+    if (rawExpression.isBlank()) return ""
+
+    val normalized = rawExpression
+        .replace("×", "*")
+        .replace("÷", "/")
+        .replace("√(", "sqrt(")
+        .replace(",", ".")
+        .replace("π", "pi")
+
+    val expression = Expression(normalized)
+    val result = expression.calculate()
+
+    if (result.isNaN()) {
+        return rawExpression
+    }
+
+    return if (result % 1.0 == 0.0) {
+        result.toLong().toString()
+    } else {
+        result.toString().replace(".", ",")
     }
 }
