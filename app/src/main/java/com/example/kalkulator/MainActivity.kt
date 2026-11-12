@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -53,29 +52,29 @@ enum class ButtonRole {
     EQUALS,
     OTHER
 }
-data class ButtonData(val title: String, val role: ButtonRole, val onClick: () -> Unit = {})
+data class ButtonData(val title: String, val role: ButtonRole)
 
 val keypadButtons = listOf(
-    ButtonData("C", ButtonRole.ACTION) {},
-    ButtonData("⌫", ButtonRole.ACTION) {},
-    ButtonData("(", ButtonRole.OTHER) {},
-    ButtonData(")", ButtonRole.OTHER) {},
-    ButtonData("7", ButtonRole.NUMBER) {},
-    ButtonData("8", ButtonRole.NUMBER) {},
-    ButtonData("9", ButtonRole.NUMBER) {},
-    ButtonData("÷", ButtonRole.OPERATION) {},
-    ButtonData("4", ButtonRole.NUMBER) {},
-    ButtonData("5", ButtonRole.NUMBER) {},
-    ButtonData("6", ButtonRole.NUMBER) {},
-    ButtonData("×", ButtonRole.OPERATION) {},
-    ButtonData("1", ButtonRole.NUMBER) {},
-    ButtonData("2", ButtonRole.NUMBER) {},
-    ButtonData("3", ButtonRole.NUMBER) {},
-    ButtonData("-", ButtonRole.OPERATION) {},
-    ButtonData("0", ButtonRole.NUMBER) {},
-    ButtonData(".", ButtonRole.NUMBER) {},
-    ButtonData("+", ButtonRole.OPERATION) {},
-    ButtonData("=", ButtonRole.EQUALS) {}
+    ButtonData("C", ButtonRole.ACTION),
+    ButtonData("⌫", ButtonRole.ACTION),
+    ButtonData("(", ButtonRole.OTHER),
+    ButtonData(")", ButtonRole.OTHER),
+    ButtonData("7", ButtonRole.NUMBER),
+    ButtonData("8", ButtonRole.NUMBER),
+    ButtonData("9", ButtonRole.NUMBER),
+    ButtonData("÷", ButtonRole.OPERATION),
+    ButtonData("4", ButtonRole.NUMBER),
+    ButtonData("5", ButtonRole.NUMBER),
+    ButtonData("6", ButtonRole.NUMBER),
+    ButtonData("×", ButtonRole.OPERATION),
+    ButtonData("1", ButtonRole.NUMBER),
+    ButtonData("2", ButtonRole.NUMBER),
+    ButtonData("3", ButtonRole.NUMBER),
+    ButtonData("-", ButtonRole.OPERATION),
+    ButtonData("0", ButtonRole.NUMBER),
+    ButtonData(".", ButtonRole.NUMBER),
+    ButtonData("+", ButtonRole.OPERATION),
+    ButtonData("=", ButtonRole.EQUALS)
 )
 
 val horizontalButtons = listOf(
@@ -212,8 +211,9 @@ fun CalcDisplay(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(22.dp)
-                    .padding(end = 4.dp)
+                    .height(28.dp)
+                    .padding(end = 4.dp),
+                contentAlignment = Alignment.CenterEnd
             ) {
                 if (resultText.isNotEmpty()) {
                     Text(
@@ -253,13 +253,13 @@ fun CalcDisplay(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.7f)
+                    .weight(0.65f)
                     .verticalScroll(scrollState)
             )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.3f)
+                    .weight(0.35f)
                     .padding(end = 8.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
@@ -292,8 +292,14 @@ fun Keypad(
     onButtonClick: (ButtonData) -> Unit,
     columns: Int = 4,
     modifier: Modifier = Modifier) {
-    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val buttonAspectRatio = if (isLandscape) 1.95f else 1f
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isTablet = configuration.screenWidthDp >= 600
+    val buttonAspectRatio = when {
+        isLandscape -> 1.95f
+        isTablet -> 1.4f
+        else -> 1f
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(columns),
